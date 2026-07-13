@@ -1,15 +1,13 @@
-name: Build LMP Debian Package
+name: Build LMP Beta (.deb)
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
-    tags:
-      - "v*"
 
 jobs:
-  build:
+  build-deb:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,7 +19,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Verify Python file
+      - name: Check Python syntax
         run: |
           python -m py_compile LMP.py
 
@@ -31,55 +29,56 @@ jobs:
           mkdir -p package/LMP/usr/bin
           mkdir -p package/LMP/usr/share/lmp
           mkdir -p package/LMP/usr/share/applications
-          mkdir -p package/LMP/usr/share/icons/hicolor/256x256/apps
+          mkdir -p package/LMP/usr/share/icons/hicolor/512x512/apps
 
       - name: Copy application files
         run: |
           cp LMP.py package/LMP/usr/share/lmp/LMP.py
-          cp lmp.png package/LMP/usr/share/icons/hicolor/256x256/apps/lmp.png
+          cp lmp.png package/LMP/usr/share/icons/hicolor/512x512/apps/lmp.png
 
       - name: Create launcher
         run: |
-          cat > package/LMP/usr/bin/lmp << 'EOF'
-          #!/bin/sh
-          exec python3 /usr/share/lmp/LMP.py "$@"
-          EOF
+          cat > package/LMP/usr/bin/lmp <<EOF
+#!/bin/sh
+exec python3 /usr/share/lmp/LMP.py "\$@"
+EOF
           chmod 755 package/LMP/usr/bin/lmp
 
-      - name: Create control file
+      - name: Create Debian control file
         run: |
-          cat > package/LMP/DEBIAN/control << 'EOF'
-          Package: lmp
-          Version: 1.0.0-alpha
-          Section: video
-          Priority: optional
-          Architecture: all
-          Maintainer: William Nguyen
-          Depends: python3, python3-tk, mpv
-          Description: Linux Media Player
-           Media player written in Python using mpv.
-          EOF
+          cat > package/LMP/DEBIAN/control <<EOF
+Package: lmp
+Version: 1.0.0-beta
+Section: video
+Priority: optional
+Architecture: all
+Maintainer: William Nguyen
+Depends: python3, python3-tk, mpv
+Description: Linux Media Player (Beta)
+ A media player written in Python using mpv.
+EOF
 
       - name: Create desktop entry
         run: |
-          cat > package/LMP/usr/share/applications/lmp.desktop << 'EOF'
-          [Desktop Entry]
-          Name=LMP
-          Comment=Linux Media Player
-          Exec=lmp
-          Icon=lmp
-          Terminal=false
-          Type=Application
-          Categories=AudioVideo;Player;
-          EOF
+          cat > package/LMP/usr/share/applications/lmp.desktop <<EOF
+[Desktop Entry]
+Name=LMP Beta
+Comment=Linux Media Player
+Exec=lmp
+Icon=lmp
+Terminal=false
+Type=Application
+Categories=AudioVideo;Player;
+StartupNotify=true
+EOF
 
       - name: Build Debian package
         run: |
           dpkg-deb --build package/LMP
-          mv package/LMP.deb LMP-1.0.0-alpha.deb
+          mv package/LMP.deb LMP-1.0.0-beta.deb
 
-      - name: Upload package
+      - name: Upload Debian package
         uses: actions/upload-artifact@v4
         with:
-          name: LMP-DEB
-          path: LMP-1.0.0-alpha.deb
+          name: LMP-1.0.0-beta
+          path: LMP-1.0.0-beta.deb
