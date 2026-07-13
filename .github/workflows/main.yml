@@ -1,95 +1,85 @@
 name: Build LMP Debian Package
 
 on:
-  push:
   workflow_dispatch:
-
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
 
 jobs:
-
-  build-deb:
-
+  build:
     runs-on: ubuntu-latest
 
-
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
+      - name: Verify Python file
+        run: |
+          python -m py_compile LMP.py
 
-    - name: Setup Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.11"
+      - name: Create package folders
+        run: |
+          mkdir -p package/LMP/DEBIAN
+          mkdir -p package/LMP/usr/bin
+          mkdir -p package/LMP/usr/share/lmp
+          mkdir -p package/LMP/usr/share/applications
+          mkdir -p package/LMP/usr/share/icons/hicolor/256x256/apps
 
+      - name: Copy application files
+        run: |
+          cp LMP.py package/LMP/usr/share/lmp/LMP.py
+          cp lmp.png package/LMP/usr/share/icons/hicolor/256x256/apps/lmp.png
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install python-mpv pillow pillow-heif
+      - name: Create launcher
+        run: |
+          cat > package/LMP/usr/bin/lmp << 'EOF'
+          #!/bin/sh
+          exec python3 /usr/share/lmp/LMP.py "$@"
+          EOF
+          chmod 755 package/LMP/usr/bin/lmp
 
+      - name: Create control file
+        run: |
+          cat > package/LMP/DEBIAN/control << 'EOF'
+          Package: lmp
+          Version: 1.0.0-alpha
+          Section: video
+          Priority: optional
+          Architecture: all
+          Maintainer: William Nguyen
+          Depends: python3, python3-tk, mpv
+          Description: Linux Media Player
+           Media player written in Python using mpv.
+          EOF
 
-    - name: Check LMP syntax
-      run: |
-        python -m py_compile "LMP.py"
+      - name: Create desktop entry
+        run: |
+          cat > package/LMP/usr/share/applications/lmp.desktop << 'EOF'
+          [Desktop Entry]
+          Name=LMP
+          Comment=Linux Media Player
+          Exec=lmp
+          Icon=lmp
+          Terminal=false
+          Type=Application
+          Categories=AudioVideo;Player;
+          EOF
 
+      - name: Build Debian package
+        run: |
+          dpkg-deb --build package/LMP
+          mv package/LMP.deb LMP-1.0.0-alpha.deb
 
-    - name: Create Debian folders
-      run: |
-        mkdir -p package/LMP/DEBIAN
-        mkdir -p package/LMP/usr/bin
-        mkdir -p package/LMP/usr/share/lmp
-        mkdir -p package/LMP/usr/share/applications
-
-
-    - name: Copy LMP program
-      run: |
-        cp "LMP.py" package/LMP/usr/share/lmp/LMP.py
-
-
-    - name: Create launcher
-      run: |
-        printf '#!/bin/bash\npython3 /usr/share/lmp/LMP.py\n' \
-        > package/LMP/usr/bin/lmp
-
-        chmod +x package/LMP/usr/bin/lmp
-
-
-    - name: Create Debian control
-      run: |
-        printf "Package: lmp\n\
-Version: 1.0.0\n\
-Section: video\n\
-Priority: optional\n\
-Architecture: all\n\
-Maintainer: LMP Developer\n\
-Depends: python3, python3-tk, mpv\n\
-Description: Linux Media Player\n\
- A Python media player using mpv.\n" \
-        > package/LMP/DEBIAN/control
-
-
-    - name: Create desktop shortcut
-      run: |
-        printf "[Desktop Entry]\n\
-Name=LMP\n\
-Comment=Linux Media Player\n\
-Exec=lmp\n\
-Terminal=false\n\
-Type=Application\n\
-Categories=AudioVideo;Player;\n" \
-        > package/LMP/usr/share/applications/lmp.desktop
-
-
-    - name: Build deb package
-      run: |
-        dpkg-deb --build package/LMP
-        mv package/LMP.deb LMP-linux.deb
-
-
-    - name: Upload package
-      uses: actions/upload-artifact@v4
-      with:
-        name: LMP-linux-deb
-        path: LMP-linux.deb
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: LMP-DEB
+          path: LMP-1.0.0-alpha.deb
