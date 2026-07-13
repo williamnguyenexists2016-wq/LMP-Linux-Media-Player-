@@ -20,8 +20,7 @@ jobs:
           python-version: "3.11"
 
       - name: Check Python syntax
-        run: |
-          python -m py_compile LMP.py
+        run: python -m py_compile LMP.py
 
       - name: Create package folders
         run: |
@@ -38,39 +37,16 @@ jobs:
 
       - name: Create launcher
         run: |
-          cat > package/LMP/usr/bin/lmp <<EOF
-#!/bin/sh
-exec python3 /usr/share/lmp/LMP.py "\$@"
-EOF
+          printf '#!/bin/sh\nexec python3 /usr/share/lmp/LMP.py "$@"\n' > package/LMP/usr/bin/lmp
           chmod 755 package/LMP/usr/bin/lmp
 
-      - name: Create Debian control file
+      - name: Create control file
         run: |
-          cat > package/LMP/DEBIAN/control <<EOF
-Package: lmp
-Version: 1.0.0-beta
-Section: video
-Priority: optional
-Architecture: all
-Maintainer: William Nguyen
-Depends: python3, python3-tk, mpv
-Description: Linux Media Player (Beta)
- A media player written in Python using mpv.
-EOF
+          printf 'Package: lmp\nVersion: 1.0.0-beta\nSection: video\nPriority: optional\nArchitecture: all\nMaintainer: William Nguyen\nDepends: python3, python3-tk, mpv\nDescription: Linux Media Player (Beta)\n A media player written in Python using mpv.\n' > package/LMP/DEBIAN/control
 
       - name: Create desktop entry
         run: |
-          cat > package/LMP/usr/share/applications/lmp.desktop <<EOF
-[Desktop Entry]
-Name=LMP Beta
-Comment=Linux Media Player
-Exec=lmp
-Icon=lmp
-Terminal=false
-Type=Application
-Categories=AudioVideo;Player;
-StartupNotify=true
-EOF
+          printf '[Desktop Entry]\nName=LMP Beta\nComment=Linux Media Player\nExec=lmp\nIcon=lmp\nTerminal=false\nType=Application\nCategories=AudioVideo;Player;\nStartupNotify=true\n' > package/LMP/usr/share/applications/lmp.desktop
 
       - name: Build Debian package
         run: |
