@@ -24,116 +24,76 @@ jobs:
         python-version: "3.11"
 
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install python-mpv pillow pillow-heif
 
 
-    - name: Check Python syntax
+    - name: Check LMP syntax
       run: |
         python -m py_compile "LMP.py"
 
 
-    - name: Create Debian folders
+    - name: Create Debian structure
       run: |
-
         mkdir -p deb/LMP/DEBIAN
-
         mkdir -p deb/LMP/usr/bin
-
         mkdir -p deb/LMP/usr/share/lmp
-
         mkdir -p deb/LMP/usr/share/applications
-
 
 
     - name: Copy LMP files
       run: |
+        cp "LMP.py" deb/LMP/usr/share/lmp/LMP.py
 
-        cp "LMP.py" deb/LMP/usr/share/lmp/
-
-        
 
     - name: Create launcher
       run: |
-
-        cat <<EOF > deb/LMP/usr/bin/lmp
-
-        #!/bin/bash
-
-        python3 /usr/share/lmp/LMP.py
-
-        EOF
-
+        cat > deb/LMP/usr/bin/lmp <<EOF
+#!/bin/bash
+python3 /usr/share/lmp/LMP.py
+EOF
 
         chmod +x deb/LMP/usr/bin/lmp
 
 
-
-    - name: Create control file
+    - name: Create Debian control file
       run: |
-
-        cat <<EOF > deb/LMP/DEBIAN/control
-
-        Package: lmp
-
-        Version: 1.0.0
-
-        Section: video
-
-        Priority: optional
-
-        Architecture: all
-
-        Depends: python3, mpv, python3-tk
-
-        Maintainer: LMP Developer
-
-        Description: Linux Media Player
-
-         A Python based media player using mpv.
-
-        EOF
+        cat > deb/LMP/DEBIAN/control <<EOF
+Package: lmp
+Version: 1.0.0
+Section: video
+Priority: optional
+Architecture: all
+Maintainer: LMP Developer
+Depends: python3, python3-tk, mpv
+Description: Linux Media Player
+ A Python based media player using mpv.
+EOF
 
 
-
-    - name: Create desktop shortcut
+    - name: Create desktop entry
       run: |
-
-        cat <<EOF > deb/LMP/usr/share/applications/lmp.desktop
-
-        [Desktop Entry]
-
-        Name=LMP
-
-        Comment=Linux Media Player
-
-        Exec=lmp
-
-        Terminal=false
-
-        Type=Application
-
-        Categories=AudioVideo;
-
-        EOF
+        cat > deb/LMP/usr/share/applications/lmp.desktop <<EOF
+[Desktop Entry]
+Name=LMP
+Comment=Linux Media Player
+Exec=lmp
+Terminal=false
+Type=Application
+Categories=AudioVideo;Player;
+EOF
 
 
-
-    - name: Build deb
+    - name: Build Debian package
       run: |
-
         dpkg-deb --build deb/LMP
-
         mv deb/LMP.deb LMP-linux.deb
-
 
 
     - name: Upload Debian package
       uses: actions/upload-artifact@v4
       with:
-
         name: LMP-DEB
-
         path: LMP-linux.deb
